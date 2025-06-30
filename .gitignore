@@ -1,0 +1,48 @@
+# ===========================================
+# APP PACKAGE .gitignore
+# ===========================================
+# This file contains patterns specific to the React Native/Expo app
+# Common patterns are handled by the root workspace .gitignore
+
+# Expo specific
+.expo/
+expo-env.d.ts
+web-build/
+
+# React Native / Metro
+.metro-health-check*
+.haste_cache/
+
+# Native builds & certificates
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Generated native directories (when ejected)
+ios/
+android/
+
+# App-specific builds
+app-example
+
+# Local development
+.expo-shared
+
+# Flipper
+.flipper/
+
+# CocoaPods (iOS)
+ios/Pods/
+ios/.xcode.env.local
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+node_modules
