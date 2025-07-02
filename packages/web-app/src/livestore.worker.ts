@@ -1,12 +1,14 @@
-import { makeWorker } from '@livestore/adapter-web/worker'
-import { makeCfSync } from '@livestore/sync-cf'
+import { makeWorker } from "@livestore/adapter-web/worker";
 
-import { schema } from './livestore/schema.js'
+import { simpleUserSchema } from "./user-store.js";
 
+console.log("🔧 === WORKER SETUP ===");
+console.log("User Schema:", simpleUserSchema);
+console.log("User Schema State:", simpleUserSchema.state);
+
+// For debugging - use only the user schema
 makeWorker({
-  schema,
-  sync: {
-    backend: makeCfSync({ url: import.meta.env.VITE_LIVESTORE_SYNC_URL }),
-    initialSyncOptions: { _tag: 'Blocking', timeout: 5000 },
-  },
-})
+  schema: simpleUserSchema,
+});
+
+console.log("✅ Worker registered with user schema");
