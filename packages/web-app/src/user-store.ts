@@ -7,8 +7,6 @@ import {
 } from "@livestore/livestore";
 
 // Simple User Store - tracks workspaces only
-console.log("📋 === DEFINING USER TABLES ===");
-
 const userTables = {
   workspaces: State.SQLite.table({
     name: "workspaces",
@@ -20,9 +18,6 @@ const userTables = {
     },
   }),
 };
-
-console.log("📋 User tables defined:", Object.keys(userTables));
-console.log("📋 Workspaces table:", userTables.workspaces);
 
 const userEvents = {
   workspaceCreated: Events.synced({
@@ -36,58 +31,32 @@ const userEvents = {
   }),
 };
 
-console.log("⚙️ === DEFINING USER MATERIALIZERS ===");
-
 const userMaterializers = State.SQLite.materializers(userEvents, {
   WorkspaceCreated: ({ id, name, emoji, createdAt }) => {
-    console.log("💾 USER MATERIALIZER: Creating workspace:", { id, name, emoji });
-    console.log("💾 USER MATERIALIZER: Using table:", userTables.workspaces);
-    try {
-      const result = userTables.workspaces.insert({
-        id,
-        name,
-        emoji,
-        createdAt,
-      });
-      console.log("💾 USER MATERIALIZER: Insert operation created:", result);
-      return result;
-    } catch (error) {
-      console.error("💾 USER MATERIALIZER ERROR:", error);
-      throw error;
-    }
+    console.log("USER STORE: Creating workspace:", { id, name, emoji });
+    return userTables.workspaces.insert({
+      id,
+      name,
+      emoji,
+      createdAt,
+    });
   },
 });
-
-console.log("⚙️ User materializers defined:", Object.keys(userMaterializers));
-
-console.log("🏗️ === CREATING USER STATE ===");
 
 const userState = State.SQLite.makeState({
   tables: userTables,
   materializers: userMaterializers,
 });
 
-console.log("🏗️ User state created:", userState);
-
 // Query for user workspaces
-console.log("🔍 === DEFINING USER QUERIES ===");
-
 export const allWorkspaces$ = queryDb(() => userTables.workspaces, {
   label: "allWorkspaces",
 });
-
-console.log("🔍 allWorkspaces$ query defined:", allWorkspaces$);
-
-console.log("📦 === CREATING USER SCHEMA ===");
 
 export const simpleUserSchema = makeSchema({
   events: userEvents,
   state: userState,
 });
-
-console.log("📦 User schema created:", simpleUserSchema);
-console.log("📦 Schema eventsDefsMap:", simpleUserSchema.eventsDefsMap);
-console.log("📦 Schema state:", simpleUserSchema.state);
 
 // Export as 'schema' for devtools compatibility
 export const schema = simpleUserSchema;
