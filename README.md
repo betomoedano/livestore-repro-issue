@@ -1,173 +1,161 @@
-# LiveStore Nested Providers Monorepo
+# LiveStore Mobile Schema Issue Reproduction
 
-This is a monorepo with both web and mobile apps demonstrating LiveStore's nested providers pattern and reproducing/fixing schema isolation issues.
+This monorepo demonstrates a schema-related issue in LiveStore when using nested providers on React Native (Expo), which we were unable to reproduce on web.
+
+## The Issue
+
+### What's happening?
+When using nested LiveStore providers with different schemas in a React Native app:
+
+1. **During boot** ✅ - Everything works perfectly:
+   - Tables are created successfully
+   - Initial data is inserted without issues
+   - Queries work as expected
+
+2. **After boot** ❌ - The same operations fail:
+   - Error: `SQLiteErrorException: no such table: workspaces`
+   - This happens when users interact with the app (e.g., clicking buttons)
+   - The exact same code that worked during boot now fails
+
+### Why is this confusing?
+- The **same store ID** is used in both scenarios
+- The **same code** is executed during boot and runtime
+- It only affects **runtime operations** after the initial boot phase
+
+### Platform Differences
+- **Mobile (Expo)** ❌: Reproduces the issue consistently
+- **Web (Vite)** ✅: Works perfectly - we couldn't reproduce the issue
+
+## Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run the mobile app (reproduces issue)
+cd packages/mobile-app
+pnpm start
+# Press 'i' for iOS or 'a' for Android
+
+# Run the web app (works correctly)
+cd packages/web-app
+pnpm dev
+# Open http://localhost:60001
+```
+
+## Understanding the Architecture
+
+### Nested Providers Pattern
+Our app uses two separate LiveStore instances:
+
+1. **User Store**: Manages workspaces
+   - Table: `workspaces`
+   - Schema: `userSchema`
+   
+2. **Workspace Store**: Manages items within each workspace
+   - Table: `items`
+   - Schema: `workspaceSchema`
+
+```
+App
+├── UserProvider (LiveStore #1)
+│   └── WorkspaceProvider (LiveStore #2)
+│       └── Your UI Components
+```
+
+### The Mobile Issue in Detail
+
+Here's what happens in the mobile app:
+
+```typescript
+// This WORKS during boot ✅
+boot={(store) => {
+  store.commit(userEvents.workspaceCreated({
+    id: "workspace-1",
+    name: "My Workspace"
+  }));
+  // Success! Workspace created
+}}
+
+// This FAILS at runtime ❌
+const handleCreateWorkspace = () => {
+  store.commit(userEvents.workspaceCreated({
+    id: "workspace-2", 
+    name: "Another Workspace"
+  }));
+  // Error: no such table: workspaces
+};
+```
 
 ## Project Structure
 
 ```
 ├── packages/
-│   ├── web-app/          # Vite + React web app (✅ FIXED)
-│   └── mobile-app/       # Expo React Native app (⚠️ May still reproduce issue)
+│   ├── mobile-app/    # React Native app that reproduces the issue
+│   │   ├── App.tsx    # Main app with nested providers
+│   │   ├── user-store.ts      # User schema (workspaces)
+│   │   └── workspace-store.ts  # Workspace schema (items)
+│   │
+│   └── web-app/       # Web app where issue doesn't occur
+│       └── src/
+│           ├── Root.tsx        # Working implementation
+│           ├── user-store.ts   # Same schemas as mobile
+│           └── workspace-store.ts
 ```
 
-## Apps Overview
+## Reproduction Steps (Mobile)
 
-### 🌐 Web App (FIXED)
-- **Status**: ✅ Working with nested providers
-- **Solution**: Separate workers for user and workspace schemas
-- **Features**: Full workspace management with isolated stores
+1. **Start the app** - You'll see an initial workspace created during boot
+2. **Click "Create Workspace"** - This will fail with "no such table" error
+3. **Check the logs** - You'll see the same store ID but different behavior
 
-### 📱 Mobile App 
-- **Status**: ⚠️ May still reproduce the original "no such table" issue
-- **Purpose**: Original reproduction case for debugging
+### Expected Logs
 
-## Quick Start
+```
+✅ Boot time (works):
+LOG  === USER STORE BOOT ===
+LOG  User store ID: USER_STORE_debug-123
+LOG  USER STORE: Creating workspace: {"id": "workspace-1", "name": "Personal"}
+LOG  ✅ Initial workspace created!
 
-### 1. Install Dependencies
-```bash
-# From repository root
-pnpm install
+❌ Runtime (fails):
+LOG  === Creating new workspace ===
+LOG  User store ID: USER_STORE_debug-123  // Same ID!
+ERROR  SQLiteErrorException: Error code 1: no such table: workspaces
 ```
 
-### 2. Run the Apps
+## Why Web Works But Mobile Doesn't
 
-#### Web App (Fixed Implementation)
-```bash
-# Option 1: From root
-cd packages/web-app
-pnpm dev
+The web implementation uses a different adapter (`@livestore/adapter-web`) which handles schema initialization differently than the Expo adapter (`@livestore/adapter-expo`).
 
-# Option 2: Using workspace filter
-pnpm --filter web-app dev
-```
-Then open http://localhost:60001
+### Our Solution for Web
+On web, we implemented separate workers for each schema:
+- `livestore.worker.ts` - For user schema
+- `workspace.worker.ts` - For workspace schema
 
-#### Mobile App (Original Reproduction)
-```bash
-# Option 1: From root  
-cd packages/mobile-app
-pnpm start
+This ensures complete schema isolation and prevents conflicts.
 
-# Option 2: Using workspace script
-pnpm mobile start
-```
-Then press 'i' for iOS or 'a' for Android
+### Mobile Still Needs Investigation
+The Expo adapter appears to have issues with:
+- Schema persistence between boot and runtime
+- Multiple stores with different schemas
+- The dual database architecture (persistent + in-memory)
 
-## The Issue & Solution
+## Key Files to Review
 
-### 🐛 Original Problem
-When using nested LiveStore providers with different schemas:
-- **Boot time**: Creating workspaces/items worked perfectly
-- **Runtime**: Same operations failed with "no such table" errors
-- **Cause**: Multiple stores sharing the same worker with conflicting schemas
+### Mobile App (Issue)
+- `packages/mobile-app/App.tsx` - See the nested providers setup
+- Look for `USER STORE BOOT` and `WORKSPACE SELECTOR` sections
 
-### ✅ Web App Solution
-**Separate Workers Approach**:
-1. **User Worker** (`livestore.worker.ts`) - Handles user schema (workspaces table)
-2. **Workspace Worker** (`workspace.worker.ts`) - Handles workspace schema (items table)
-3. **Schema Isolation** - Each store type gets its own dedicated worker
-4. **No Conflicts** - Workers can't interfere with each other's schemas
+### Web App (Working)
+- `packages/web-app/src/Root.tsx` - Compare the implementation
+- Note the separate worker files for schema isolation
 
-### 🔧 Implementation Details
+## Next Steps
 
-**Web App Architecture**:
-```typescript
-// User Provider - manages workspaces
-<LiveStoreProvider 
-  schema={userSchema} 
-  worker={LiveStoreUserWorker} />
+This reproduction demonstrates that:
+1. The issue is specific to the React Native/Expo adapter
+2. The same architecture works perfectly on web
+3. The problem appears to be related to how schemas are persisted/loaded
 
-// Workspace Provider - manages items  
-<LiveStoreProvider 
-  schema={workspaceSchema} 
-  worker={LiveStoreWorkspaceWorker} />
-```
-
-**File Structure**:
-```
-packages/web-app/src/
-├── Root.tsx                 # Nested providers implementation
-├── user-store.ts           # User schema (workspaces)
-├── workspace-store.ts      # Workspace schema (items)  
-├── livestore.worker.ts     # User worker
-└── workspace.worker.ts     # Workspace worker
-```
-
-## Features Demonstrated
-
-### ✅ Working Features (Web App)
-- **Workspace Creation**: Create new workspaces via UI
-- **Workspace Switching**: Switch between workspaces with isolated data
-- **Item Management**: Add items to specific workspaces
-- **Schema Isolation**: Each workspace has its own SQLite database
-- **Nested Providers**: UserProvider → WorkspaceProvider pattern
-
-### 🎯 Test Scenarios
-1. **Create Workspaces**: Click "Create Workspace" button
-2. **Switch Workspaces**: Click different workspace buttons  
-3. **Add Items**: Click "Create Item" in different workspaces
-4. **Verify Isolation**: Items only appear in their respective workspaces
-
-## Code Structure
-
-### Core Files
-
-#### User Store (`user-store.ts`)
-```typescript
-// Tracks workspaces only
-const userTables = {
-  workspaces: State.SQLite.table({...})
-}
-```
-
-#### Workspace Store (`workspace-store.ts`) 
-```typescript
-// Tracks items only
-const workspaceTables = {
-  items: State.SQLite.table({...})
-}
-```
-
-#### Root Component (`Root.tsx`)
-- **UserProvider**: Creates user store for workspace management
-- **WorkspaceProvider**: Creates isolated stores for each workspace
-- **Context Separation**: Prevents store reference conflicts
-
-## Development Notes
-
-### Web App
-- Uses Vite for fast development
-- TypeScript with strict mode
-- React 19 with modern patterns
-
-### Mobile App
-- Expo SDK 53
-- React Native 0.79.4
-- Original LiveStore Expo adapter
-
-### Key Dependencies
-- `@livestore/adapter-web` (web app)
-- `@livestore/adapter-expo` (mobile app)  
-- `@livestore/react` (both apps)
-- `@livestore/livestore` (core library)
-
-## Debugging
-
-### Web App Logs
-Watch for these console messages:
-```
-🔧 === WORKER SETUP === (user worker)
-🔧 === WORKSPACE WORKER SETUP === (workspace worker)
-=== USER STORE BOOT ===
-=== WORKSPACE STORE BOOT ===
-```
-
-### Mobile App Logs
-May still show the original error:
-```
-❌ SQLiteErrorException: Error code 1: no such table: workspaces
-```
-
-## Contributing
-
-This monorepo serves as both a reproduction case and a working solution demonstration. The web app shows the fix, while the mobile app preserves the original issue for debugging purposes.
+The mobile app serves as a minimal reproduction case for debugging the Expo adapter's schema handling.
