@@ -4,6 +4,10 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "mobile": "pnpm --filter @livestore-repro/mobile-app"
+    "mobile": "pnpm --filter @livestore-repro/mobile-app",
+    "postinstall": "patch-package"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.0"
   }
 }
