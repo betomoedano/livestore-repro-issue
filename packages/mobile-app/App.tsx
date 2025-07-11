@@ -41,10 +41,7 @@ const workspaceAdapter = makePersistedAdapter({});
 function UserProvider({ children }: { children: React.ReactNode }) {
   const userId = "USER_STORE_debug-123";
 
-  const renderLoading = useCallback(
-    () => <Text>Loading user store...</Text>,
-    []
-  );
+  const renderLoading = useCallback(() => <></>, []);
 
   const renderError = useCallback(
     (error: any) => <Text>User store error: {String(error)}</Text>,
@@ -88,10 +85,7 @@ function WorkspaceProvider({
   workspaceId: string;
   children: React.ReactNode;
 }) {
-  const renderLoading = useCallback(
-    () => <Text>Loading workspace...</Text>,
-    []
-  );
+  const renderLoading = useCallback(() => <></>, []);
 
   const renderError = useCallback(
     (error: any) => <Text>Workspace error: {String(error)}</Text>,
@@ -168,10 +162,14 @@ function WorkspaceSelector({
             padding: 10,
             marginBottom: 5,
             backgroundColor:
-              selectedWorkspaceId === workspace.id ? "#e0e0e0" : "#f5f5f5",
+              selectedWorkspaceId === workspace.id ? "#007AFF" : "#f5f5f5",
           }}
         >
-          <Text>
+          <Text
+            style={{
+              color: selectedWorkspaceId === workspace.id ? "white" : "black",
+            }}
+          >
             {workspace.emoji} {workspace.name}
           </Text>
         </TouchableOpacity>
@@ -201,14 +199,11 @@ function WorkspaceContent() {
   };
 
   return (
-    <View style={{ padding: 20, backgroundColor: "#f0f0f0" }}>
+    <View style={{ padding: 20 }}>
       <Text style={{ fontSize: 20, marginBottom: 10 }}>Items</Text>
 
       {items.map((item) => (
-        <View
-          key={item.id}
-          style={{ padding: 10, marginBottom: 5, backgroundColor: "white" }}
-        >
+        <View key={item.id} style={{ padding: 10, marginBottom: 5 }}>
           <Text>
             {item.emoji} {item.name}
           </Text>
@@ -228,7 +223,7 @@ function MainContent() {
   );
 
   return (
-    <ScrollView style={{ flex: 1 }}>
+    <ScrollView style={{ flex: 1 }} contentInsetAdjustmentBehavior="automatic">
       <WorkspaceSelector
         selectedWorkspaceId={selectedWorkspaceId}
         setSelectedWorkspaceId={setSelectedWorkspaceId}
