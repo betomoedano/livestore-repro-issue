@@ -41,13 +41,15 @@ const workspaceAdapter = makePersistedAdapter({});
 function UserProvider({ children }: { children: React.ReactNode }) {
   const userId = "USER_STORE_debug-123";
 
-  const renderLoading = useCallback(() => (
-    <Text>Loading user store...</Text>
-  ), []);
+  const renderLoading = useCallback(
+    () => <Text>Loading user store...</Text>,
+    []
+  );
 
-  const renderError = useCallback((error: any) => (
-    <Text>User store error: {String(error)}</Text>
-  ), []);
+  const renderError = useCallback(
+    (error: any) => <Text>User store error: {String(error)}</Text>,
+    []
+  );
 
   const bootFunction = useCallback((store: any) => {
     const workspaceCount = store.query(userTables.workspaces.count());
@@ -86,13 +88,15 @@ function WorkspaceProvider({
   workspaceId: string;
   children: React.ReactNode;
 }) {
-  const renderLoading = useCallback(() => (
-    <Text>Loading workspace...</Text>
-  ), []);
+  const renderLoading = useCallback(
+    () => <Text>Loading workspace...</Text>,
+    []
+  );
 
-  const renderError = useCallback((error: any) => (
-    <Text>Workspace error: {String(error)}</Text>
-  ), []);
+  const renderError = useCallback(
+    (error: any) => <Text>Workspace error: {String(error)}</Text>,
+    []
+  );
 
   const bootFunction = useCallback((store: any) => {
     const itemCount = store.query(workspaceTables.items.count());
