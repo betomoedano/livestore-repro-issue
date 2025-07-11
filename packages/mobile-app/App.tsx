@@ -1,5 +1,5 @@
 import "./polyfill";
-import { useState, useCallback } from "react";
+import { useState, useCallback, createContext, useContext } from "react";
 import {
   View,
   Text,
@@ -38,6 +38,27 @@ let workspaceCounter = 0;
 const userAdapter = makePersistedAdapter({});
 const workspaceAdapter = makePersistedAdapter({});
 
+// Create contexts for accessing stores from anywhere in the component tree
+const UserStoreContext = createContext<any>(null);
+const WorkspaceStoreContext = createContext<any>(null);
+
+// Custom hooks to access specific stores
+const useUserStore = () => {
+  const store = useContext(UserStoreContext);
+  if (!store) {
+    throw new Error("useUserStore must be used within a UserProvider");
+  }
+  return store;
+};
+
+const useWorkspaceStore = () => {
+  const store = useContext(WorkspaceStoreContext);
+  if (!store) {
+    throw new Error("useWorkspaceStore must be used within a WorkspaceProvider");
+  }
+  return store;
+};
+
 function UserProvider({ children }: { children: React.ReactNode }) {
   const userId = "USER_STORE_debug-123";
 
@@ -73,8 +94,19 @@ function UserProvider({ children }: { children: React.ReactNode }) {
       boot={bootFunction}
       batchUpdates={unstable_batchedUpdates}
     >
-      {children}
+      <UserStoreProvider>{children}</UserStoreProvider>
     </LiveStoreProvider>
+  );
+}
+
+// Component that exposes the user store via context
+function UserStoreProvider({ children }: { children: React.ReactNode }) {
+  const { store } = useStore(); // Get the user store from LiveStoreProvider
+
+  return (
+    <UserStoreContext.Provider value={store}>
+      {children}
+    </UserStoreContext.Provider>
   );
 }
 
@@ -118,8 +150,19 @@ function WorkspaceProvider({
       boot={bootFunction}
       batchUpdates={unstable_batchedUpdates}
     >
-      {children}
+      <WorkspaceStoreProvider>{children}</WorkspaceStoreProvider>
     </LiveStoreProvider>
+  );
+}
+
+// Component that exposes the workspace store via context
+function WorkspaceStoreProvider({ children }: { children: React.ReactNode }) {
+  const { store } = useStore(); // Get the workspace store from LiveStoreProvider
+
+  return (
+    <WorkspaceStoreContext.Provider value={store}>
+      {children}
+    </WorkspaceStoreContext.Provider>
   );
 }
 
@@ -130,7 +173,7 @@ function WorkspaceSelector({
   selectedWorkspaceId: string | null;
   setSelectedWorkspaceId: (id: string) => void;
 }) {
-  const { store: userStore } = useStore();
+  const userStore = useUserStore(); // Now uses custom hook
   const workspaces = userStore.useQuery(allWorkspaces$);
 
   const createNewWorkspace = () => {
@@ -183,7 +226,7 @@ function WorkspaceSelector({
 }
 
 function WorkspaceContent() {
-  const { store: workspaceStore } = useStore();
+  const workspaceStore = useWorkspaceStore(); // Now uses custom hook
   const items = workspaceStore.useQuery(allItems$);
 
   const createItem = () => {
@@ -203,16 +246,34 @@ function WorkspaceContent() {
       <Text style={{ fontSize: 20, marginBottom: 10 }}>Items</Text>
 
       {items.map((item) => (
-        <View key={item.id} style={{ padding: 10, marginBottom: 5 }}>
-          <Text>
-            {item.emoji} {item.name}
-          </Text>
-        </View>
+        <ItemComponent key={item.id} item={item} />
       ))}
 
       <View style={{ marginTop: 10 }}>
         <Button title="Add Item" onPress={createItem} />
       </View>
+    </View>
+  );
+}
+
+// Demo component that can access BOTH stores from anywhere in the tree
+function ItemComponent({ item }: { item: any }) {
+  const userStore = useUserStore(); // Access user store
+  const workspaceStore = useWorkspaceStore(); // Access workspace store
+  
+  const workspaces = userStore.useQuery(allWorkspaces$);
+  
+  return (
+    <View style={{ padding: 10, marginBottom: 5, backgroundColor: "#f0f0f0" }}>
+      <Text>
+        {item.emoji} {item.name}
+      </Text>
+      <Text style={{ fontSize: 12, color: "#666" }}>
+        From workspace store: {workspaceStore.storeId}
+      </Text>
+      <Text style={{ fontSize: 12, color: "#666" }}>
+        Total workspaces from user store: {workspaces.length}
+      </Text>
     </View>
   );
 }

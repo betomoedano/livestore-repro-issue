@@ -9,6 +9,8 @@
 expo-env.d.ts
 web-build/
 
+packages/mobile-app/node_modules
+
 # React Native / Metro
 .metro-health-check*
 .haste_cache/
