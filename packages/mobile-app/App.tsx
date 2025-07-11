@@ -1,5 +1,5 @@
 import "./polyfill";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -34,31 +34,44 @@ const ITEM_EMOJIS = ["📝", "✅", "🔥", "⭐", "🎯"];
 
 let workspaceCounter = 0;
 
+// Create adapters outside components to prevent recreation on every render
+const userAdapter = makePersistedAdapter({});
+const workspaceAdapter = makePersistedAdapter({});
+
 function UserProvider({ children }: { children: React.ReactNode }) {
   const userId = "USER_STORE_debug-123";
-  const userAdapter = makePersistedAdapter({});
+
+  const renderLoading = useCallback(() => (
+    <Text>Loading user store...</Text>
+  ), []);
+
+  const renderError = useCallback((error: any) => (
+    <Text>User store error: {String(error)}</Text>
+  ), []);
+
+  const bootFunction = useCallback((store: any) => {
+    const workspaceCount = store.query(userTables.workspaces.count());
+    if (workspaceCount === 0) {
+      const template = WORKSPACE_TEMPLATES[0];
+      store.commit(
+        userEvents.workspaceCreated({
+          id: "WORKSPACE_STORE_debug-1",
+          name: template.name,
+          emoji: template.emoji,
+          createdAt: new Date(),
+        })
+      );
+    }
+  }, []);
 
   return (
     <LiveStoreProvider
       schema={simpleUserSchema}
       adapter={userAdapter}
       storeId={userId}
-      renderLoading={() => <Text>Loading user store...</Text>}
-      renderError={(error) => <Text>User store error: {String(error)}</Text>}
-      boot={(store) => {
-        const workspaceCount = store.query(userTables.workspaces.count());
-        if (workspaceCount === 0) {
-          const template = WORKSPACE_TEMPLATES[0];
-          store.commit(
-            userEvents.workspaceCreated({
-              id: "WORKSPACE_STORE_debug-1",
-              name: template.name,
-              emoji: template.emoji,
-              createdAt: new Date(),
-            })
-          );
-        }
-      }}
+      renderLoading={renderLoading}
+      renderError={renderError}
+      boot={bootFunction}
       batchUpdates={unstable_batchedUpdates}
     >
       {children}
@@ -73,30 +86,38 @@ function WorkspaceProvider({
   workspaceId: string;
   children: React.ReactNode;
 }) {
-  const workspaceAdapter = makePersistedAdapter({});
+  const renderLoading = useCallback(() => (
+    <Text>Loading workspace...</Text>
+  ), []);
+
+  const renderError = useCallback((error: any) => (
+    <Text>Workspace error: {String(error)}</Text>
+  ), []);
+
+  const bootFunction = useCallback((store: any) => {
+    const itemCount = store.query(workspaceTables.items.count());
+    if (itemCount === 0) {
+      for (let i = 0; i < 2; i++) {
+        store.commit(
+          workspaceEvents.itemCreated({
+            id: nanoid(),
+            name: `Item ${i + 1}`,
+            emoji: ITEM_EMOJIS[i],
+            createdAt: new Date(),
+          })
+        );
+      }
+    }
+  }, []);
 
   return (
     <LiveStoreProvider
       schema={simpleWorkspaceSchema}
       adapter={workspaceAdapter}
       storeId={workspaceId}
-      renderLoading={() => <Text>Loading workspace...</Text>}
-      renderError={(error) => <Text>Workspace error: {String(error)}</Text>}
-      boot={(store) => {
-        const itemCount = store.query(workspaceTables.items.count());
-        if (itemCount === 0) {
-          for (let i = 0; i < 2; i++) {
-            store.commit(
-              workspaceEvents.itemCreated({
-                id: nanoid(),
-                name: `Item ${i + 1}`,
-                emoji: ITEM_EMOJIS[i],
-                createdAt: new Date(),
-              })
-            );
-          }
-        }
-      }}
+      renderLoading={renderLoading}
+      renderError={renderError}
+      boot={bootFunction}
       batchUpdates={unstable_batchedUpdates}
     >
       {children}
