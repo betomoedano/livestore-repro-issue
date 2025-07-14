@@ -9,11 +9,11 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@livestore/adapter-expo": "0.3.2-dev.0",
-    "@livestore/devtools-expo": "0.3.2-dev.0",
-    "@livestore/livestore": "0.3.2-dev.0",
-    "@livestore/peer-deps": "0.3.2-dev.0",
-    "@livestore/react": "0.3.2-dev.0",
+    "@livestore/adapter-expo": "0.3.2-dev.6",
+    "@livestore/devtools-expo": "0.3.2-dev.6",
+    "@livestore/livestore": "0.3.2-dev.6",
+    "@livestore/peer-deps": "0.3.2-dev.6",
+    "@livestore/react": "0.3.2-dev.6",
     "expo": "~53.0.13",
     "expo-crypto": "~14.1.5",
     "expo-sqlite": "^15.2.12",

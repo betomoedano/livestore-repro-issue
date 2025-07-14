@@ -12,13 +12,13 @@ import { LiveStoreProvider, useStore } from "@livestore/react";
 import { nanoid } from "@livestore/livestore";
 import { makePersistedAdapter } from "@livestore/adapter-expo";
 import {
-  simpleUserSchema,
+  schema as simpleUserSchema,
   userTables,
   userEvents,
   allWorkspaces$,
 } from "./user-store";
 import {
-  simpleWorkspaceSchema,
+  schema as simpleWorkspaceSchema,
   workspaceTables,
   workspaceEvents,
   allItems$,
@@ -54,7 +54,9 @@ const useUserStore = () => {
 const useWorkspaceStore = () => {
   const store = useContext(WorkspaceStoreContext);
   if (!store) {
-    throw new Error("useWorkspaceStore must be used within a WorkspaceProvider");
+    throw new Error(
+      "useWorkspaceStore must be used within a WorkspaceProvider"
+    );
   }
   return store;
 };
@@ -260,9 +262,9 @@ function WorkspaceContent() {
 function ItemComponent({ item }: { item: any }) {
   const userStore = useUserStore(); // Access user store
   const workspaceStore = useWorkspaceStore(); // Access workspace store
-  
+
   const workspaces = userStore.useQuery(allWorkspaces$);
-  
+
   return (
     <View style={{ padding: 10, marginBottom: 5, backgroundColor: "#f0f0f0" }}>
       <Text>

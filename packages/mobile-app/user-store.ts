@@ -53,9 +53,12 @@ export const allWorkspaces$ = queryDb(() => userTables.workspaces, {
   label: "allWorkspaces",
 });
 
-export const simpleUserSchema = makeSchema({
+export const schema = makeSchema({
   events: userEvents,
   state: userState,
+  devtools: {
+    alias: "user",
+  },
 });
 
 export { userTables, userEvents };
